@@ -1,17 +1,19 @@
-name: Zaimanhua Auto Check-in
+name: Daily Comment plus
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '30 1 * * *'
   workflow_dispatch:
 
 jobs:
-  checkin:
+  comment:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Setup Python
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -19,9 +21,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run check-in script
+      - name: Run comment script
         env:
-          PYTHONIOENCODING: utf-8
           ZAIMANHUA_COOKIE: ${{ secrets.ZAIMANHUA_COOKIE }}
           ZAIMANHUA_COOKIE_1: ${{ secrets.ZAIMANHUA_COOKIE_1 }}
           ZAIMANHUA_COOKIE_2: ${{ secrets.ZAIMANHUA_COOKIE_2 }}
@@ -40,4 +41,4 @@ jobs:
           ZAIMANHUA_PASSWORD_4: ${{ secrets.ZAIMANHUA_PASSWORD_4 }}
           ZAIMANHUA_USERNAME_5: ${{ secrets.ZAIMANHUA_USERNAME_5 }}
           ZAIMANHUA_PASSWORD_5: ${{ secrets.ZAIMANHUA_PASSWORD_5 }}
-        run: python src/checkin.py
+        run: python src/comment_plus.py

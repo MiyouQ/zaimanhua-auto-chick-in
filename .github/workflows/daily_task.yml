@@ -1,4 +1,4 @@
-name: Zaimanhua Auto Check-in
+name: Zaimanhua Daily Tasks
 
 on:
   schedule:
@@ -6,12 +6,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  checkin:
+  daily-tasks:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 15
 
-      - name: Setup Python
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -19,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run check-in script
+      - name: Run daily tasks script
         env:
           PYTHONIOENCODING: utf-8
           ZAIMANHUA_COOKIE: ${{ secrets.ZAIMANHUA_COOKIE }}
@@ -40,4 +43,4 @@ jobs:
           ZAIMANHUA_PASSWORD_4: ${{ secrets.ZAIMANHUA_PASSWORD_4 }}
           ZAIMANHUA_USERNAME_5: ${{ secrets.ZAIMANHUA_USERNAME_5 }}
           ZAIMANHUA_PASSWORD_5: ${{ secrets.ZAIMANHUA_PASSWORD_5 }}
-        run: python src/checkin.py
+        run: python src/daily_task.py
