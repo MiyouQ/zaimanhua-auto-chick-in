@@ -6,10 +6,6 @@ from urllib.parse import unquote
 from dotenv import load_dotenv
 
 
-# 配置
-PAGE_TIMEOUT = 60000
-
-
 def extract_user_info_from_cookies(cookie_str):
     """从 Cookie 中提取用户信息用于设置 localStorage"""
     user_info = {}
@@ -18,9 +14,8 @@ def extract_user_info_from_cookies(cookie_str):
     for item in cookie_str.split(';'):
         item = item.strip()
         if item.startswith('lginfo='):
-            lginfo_value = item[7:]  # Remove 'lginfo='
+            lginfo_value = item[7:]
             lginfo_decoded = unquote(lginfo_value)
-            # 尝试解析为 JSON
             try:
                 parsed = json.loads(lginfo_decoded)
                 # 确保解析结果是字典类型（防止 JSON 字符串字面量导致 .get() 失败）
@@ -51,7 +46,6 @@ def extract_user_info_from_cookies(cookie_str):
                     }
                 break
 
-    # 确保有 token
     if not user_info.get('token'):
         for item in cookie_str.split(';'):
             item = item.strip()
@@ -60,45 +54,6 @@ def extract_user_info_from_cookies(cookie_str):
                 break
 
     return user_info
-
-
-def init_localstorage(page, cookie_str):
-    """在当前页面设置 localStorage 以确保 Vue 应用识别登录状态"""
-    user_info = extract_user_info_from_cookies(cookie_str)
-
-    if not user_info.get('uid'):
-        print("警告: 无法从 Cookie 中提取用户信息")
-        return False
-
-    # 如果 user_info 已经是完整的 lginfo 格式，直接使用
-    # 否则构建完整的 lginfo 对象
-    if 'setPasswd' not in user_info:
-        lginfo = {
-            "uid": int(user_info.get('uid', 0)),
-            "username": user_info.get('username', user_info.get('nickname', '')),
-            "nickname": user_info.get('nickname', user_info.get('username', '')),
-            "email": user_info.get('email', ''),
-            "photo": user_info.get('photo', ''),
-            "bind_phone": user_info.get('bind_phone', ''),
-            "sex": int(user_info.get('sex', 0)),
-            "token": user_info.get('token', ''),
-            "setPasswd": 1,
-            "bindWechat": user_info.get('bindWechat', False),
-            "bindQq": user_info.get('bindQq', False),
-            "bindSina": user_info.get('bindSina', False),
-            "status": user_info.get('status', 1),
-            "is_sign": user_info.get('is_sign', True),
-            "user_level": user_info.get('user_level', 1),
-            "isInUserWhitelist": user_info.get('isInUserWhitelist', False)
-        }
-    else:
-        lginfo = user_info
-
-    # Set localStorage
-    lginfo_json = json.dumps(lginfo, ensure_ascii=False)
-    page.evaluate(f'localStorage.setItem("lginfo", {json.dumps(lginfo_json)})')
-    print(f"已设置 localStorage (uid: {lginfo.get('uid')})")
-    return True
 
 
 def _make_account_label(default_label, cookie_str):
@@ -133,40 +88,53 @@ def validate_cookie(cookie_str):
 
 
 def get_all_cookies():
-    """获取所有账号的 Cookie"""
+    """获取所有账号的 Cookie
+    
+    如果未配置Cookie但配置了自动登录凭据，返回空字符串占位符
+    以便触发自动登录备用方案
+    """
     load_dotenv()  # 自动加载 .env 文件（本地测试用）
 
     cookies_list = []
     single = os.environ.get('ZAIMANHUA_COOKIE')
-    if single:
+    if single and single.strip():
         label = _make_account_label('默认账号', single)
         cookies_list.append((label, single))
     i = 1
     while True:
         cookie = os.environ.get(f'ZAIMANHUA_COOKIE_{i}')
-        if cookie:
+        if cookie and cookie.strip():
             label = _make_account_label(f'账号 {i}', cookie)
             cookies_list.append((label, cookie))
             i += 1
         else:
             break
+    
+    if not cookies_list:
+        username = os.environ.get('ZAIMANHUA_USERNAME')
+        password = os.environ.get('ZAIMANHUA_PASSWORD')
+        if username and username.strip() and password and password.strip():
+            cookies_list.append(('默认账号', ''))
+    
+    max_index = 0
+    for key in os.environ.keys():
+        if key.startswith('ZAIMANHUA_USERNAME_'):
+            try:
+                index = int(key.split('_')[-1])
+                max_index = max(max_index, index)
+            except ValueError:
+                continue
+    
+    for i in range(1, max_index + 1):
+        username = os.environ.get(f'ZAIMANHUA_USERNAME_{i}')
+        password = os.environ.get(f'ZAIMANHUA_PASSWORD_{i}')
+        if username and username.strip() and password and password.strip():
+            if i >= len(cookies_list):
+                cookies_list.append((f'账号 {i}', ''))
+            elif not cookies_list[i][1]:
+                pass
+    
     return cookies_list
-
-
-def parse_cookies(cookie_str):
-    """解析 Cookie 字符串为 Playwright 格式"""
-    cookies = []
-    for item in cookie_str.split(';'):
-        item = item.strip()
-        if '=' in item:
-            name, value = item.split('=', 1)
-            cookies.append({
-                'name': name.strip(),
-                'value': value.strip(),
-                'domain': '.zaimanhua.com',
-                'path': '/'
-            })
-    return cookies
 
 
 def get_task_list(token):
@@ -242,7 +210,6 @@ def print_task_status(cookie_str, label=""):
     """打印当前任务状态（用于调试）"""
     token = None
     user_info = extract_user_info_from_cookies(cookie_str)
-    # 确保 user_info 是字典类型
     if isinstance(user_info, dict):
         token = user_info.get('token')
     if not token:
@@ -272,10 +239,8 @@ def print_task_status(cookie_str, label=""):
                     task_desc = task.get('desc', '')
                     status = task.get('status', '?')
 
-                    # 状态说明: 1=未完成, 2=可领取, 3=已完成
                     status_desc = {1: '未完成', 2: '可领取', 3: '已完成'}.get(status, f'未知({status})')
 
-                    # 获取奖励信息
                     currency = task.get('currency', {})
                     credits = currency.get('credits', 0) if isinstance(currency, dict) else 0
 
@@ -305,15 +270,12 @@ def claim_task_reward(token, task_id):
 
     last_result = None
 
-    # 尝试多种 API 端点和参数组合
-    # 组合 1: POST 请求 + JSON body（最常见的 RESTful 风格）
     json_body_endpoints = [
         'https://i.zaimanhua.com/lpi/v1/task/receive',
         'https://i.zaimanhua.com/lpi/v1/task/claim',
         'https://i.zaimanhua.com/lpi/v1/task/get_reward',
     ]
 
-    # 尝试不同的参数名: id, taskId, task_id
     param_names = ['id', 'taskId', 'task_id']
 
     for url in json_body_endpoints:
@@ -333,7 +295,6 @@ def claim_task_reward(token, task_id):
                 last_result = {'errmsg': str(e)}
                 continue
 
-    # 组合 2: GET 请求 + query string（旧版兼容）
     for param_name in param_names:
         query_urls = [
             f'https://i.zaimanhua.com/lpi/v1/task/receive?{param_name}={task_id}',
@@ -358,23 +319,19 @@ def claim_task_reward(token, task_id):
     return False, last_result
 
 
-def claim_rewards(page, cookie_str=None):
-    """在用户中心领取已完成任务的积分
-
-    优先使用 API 方式领取，如果失败则回退到 UI 方式
+def claim_rewards(cookie_str=None):
+    """通过 API 领取所有可领取的任务奖励
 
     任务状态值:
     - status=1: 未完成
-    - status=2: 可领取（任务已完成，等待领取奖励）
-    - status=3: 已完成（奖励已领取）
+    - status=2: 可领取
+    - status=3: 已完成
     """
     print("\n=== 领取积分任务 ===")
 
-    # 尝试从 cookie_str 获取 token
     token = None
     if cookie_str:
         user_info = extract_user_info_from_cookies(cookie_str)
-        # 确保 user_info 是字典类型
         if isinstance(user_info, dict):
             token = user_info.get('token')
         if not token:
@@ -384,124 +341,45 @@ def claim_rewards(page, cookie_str=None):
                     token = item[6:]
                     break
 
-    # 如果有 token，尝试 API 方式
-    if token:
-        print("尝试通过 API 领取奖励...")
-        task_result = get_task_list(token)
-
-        if task_result and task_result.get('errno') == 0:
-            tasks = extract_tasks_from_response(task_result)
-
-            claimed_count = 0
-            claimable_count = 0
-
-            for task in tasks:
-                task_id = task.get('id') or task.get('taskId')
-                task_name = task.get('title') or task.get('name') or task.get('taskName', '未知任务')
-                status = task.get('status', 0)
-
-                # 状态说明:
-                # - status=2: 可领取（任务已完成，等待领取奖励）
-                # - status=3: 已完成（奖励已领取）
-                if status == 2:
-                    claimable_count += 1
-                    print(f"  发现可领取任务: {task_name} (ID: {task_id}, status={status})")
-
-                    if task_id:
-                        success, result = claim_task_reward(token, task_id)
-                        if success:
-                            print(f"    [OK] 领取成功")
-                            claimed_count += 1
-                        else:
-                            print(f"    [FAIL] 领取失败")
-                elif status == 3:
-                    print(f"  任务已领取: {task_name} (ID: {task_id}, status={status})")
-                elif status == 1:
-                    print(f"  任务未完成: {task_name} (ID: {task_id}, status={status})")
-
-            if claimable_count == 0:
-                print("没有可领取的奖励（没有已完成的任务）")
-            else:
-                print(f"尝试领取 {claimable_count} 个任务，成功 {claimed_count} 个")
-
-            return True  # API 调用成功就返回 True
-
-    # 回退到 UI 方式
-    print("回退到 UI 方式领取...")
-    try:
-        # 访问用户中心
-        print("访问用户中心...")
-        page.goto('https://i.zaimanhua.com/', wait_until='domcontentloaded')
-        page.wait_for_timeout(5000)
-
-        # 查找所有可领取的按钮（尝试多种选择器）
-        selectors = [
-            ".okBtn", ".claim-btn", ".receive-btn", 
-            "button:has-text('领取')", 
-            "div:has-text('可领取')",  # 新增：针对测试中发现的文本
-            "text=可领取积分",        # 新增：精确匹配
-            "[class*='领取']"
-        ]
-        claim_buttons = []
-        for selector in selectors:
-            try:
-                # 使用 query_selector_all 可能拿不到伪元素或动态文本，
-                # 尝试 locator.all() 会更稳泛，但这里保持结构，先加 selector
-                if 'text=' in selector:
-                    buttons = page.locator(selector).all()
-                else:
-                    buttons = page.query_selector_all(selector)
-                
-                if buttons:
-                    for btn in buttons:
-                        # 再次过滤，确保可见且不是“已领取”
-                        try:
-                            if not btn.is_visible(): continue
-                            txt = btn.inner_text()
-                            if "已领取" in txt: continue
-                            if btn not in claim_buttons:
-                                claim_buttons.append(btn)
-                        except: pass
-            except:
-                pass
-
-        claimed_count = 0
-
-        if claim_buttons:
-            print(f"找到 {len(claim_buttons)} 个可领取的奖励")
-            for i, btn in enumerate(claim_buttons):
-                try:
-                    btn_text = btn.inner_text()
-                    print(f"  点击领取按钮 {i+1}: {btn_text}")
-                    btn.click()
-                    page.wait_for_timeout(1500)
-                    claimed_count += 1
-                except Exception as e:
-                    print(f"  领取按钮 {i+1} 点击失败: {e}")
-
-            print(f"成功领取 {claimed_count} 个奖励")
-            return claimed_count > 0
-        else:
-            print("没有可领取的奖励")
-            return True  # 没有奖励也算成功
-
-    except Exception as e:
-        print(f"领取积分失败: {e}")
+    if not token:
+        print("  无法获取 token，跳过领取")
         return False
 
+    print("尝试通过 API 领取奖励...")
+    task_result = get_task_list(token)
 
-def create_browser_context(playwright, cookie_str):
-    """创建浏览器上下文"""
-    cookies = parse_cookies(cookie_str)
-    print(f"已解析 {len(cookies)} 个 Cookie")
+    if not task_result or task_result.get('errno') != 0:
+        print("  获取任务列表失败")
+        return False
 
-    browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context(
-        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        viewport={'width': 1920, 'height': 1080}
-    )
-    context.add_cookies(cookies)
-    page = context.new_page()
-    page.set_default_timeout(PAGE_TIMEOUT)
+    tasks = extract_tasks_from_response(task_result)
+    claimed_count = 0
+    claimable_count = 0
 
-    return browser, context, page
+    for task in tasks:
+        task_id = task.get('id') or task.get('taskId')
+        task_name = task.get('title') or task.get('name') or task.get('taskName', '未知任务')
+        status = task.get('status', 0)
+
+        if status == 2:
+            claimable_count += 1
+            print(f"  发现可领取任务: {task_name} (ID: {task_id})")
+
+            if task_id:
+                success, result = claim_task_reward(token, task_id)
+                if success:
+                    print(f"    [OK] 领取成功")
+                    claimed_count += 1
+                else:
+                    print(f"    [FAIL] 领取失败")
+        elif status == 3:
+            print(f"  任务已领取: {task_name} (ID: {task_id})")
+        elif status == 1:
+            print(f"  任务未完成: {task_name} (ID: {task_id})")
+
+    if claimable_count == 0:
+        print("  没有可领取的奖励")
+    else:
+        print(f"  尝试领取 {claimable_count} 个任务，成功 {claimed_count} 个")
+
+    return True
