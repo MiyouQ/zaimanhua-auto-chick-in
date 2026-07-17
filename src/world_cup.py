@@ -164,7 +164,6 @@ def get_draw_load(token):
     print(f"  分享任务: {'已完成' if data.get('shareTimes', 0) >= 1 else '未完成'}")
     print(f"  阅读任务: {'已完成' if data.get('readTimes', 0) >= 1 else '未完成'}")
     print(f"  评论任务: {'已完成' if data.get('addComTimes', 0) >= 1 else '未完成'}")
-    print(f"  可抽奖次数: {data.get('canDrawTimes', 0)}")
     return data
 
 
