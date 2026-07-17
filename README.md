@@ -20,7 +20,11 @@
 
 ### 当前活动
 
-> 暂无进行中的活动
+| 功能 | 对应工作流 | 说明 |
+|-----|-----------|------|
+| 2026暑假世界杯转盘抽奖 | World Cup Lottery | 自动完成任务并抽奖|
+
+> 活动页面: https://activity.zaimanhua.com/world-cup/
 
 ## 配置 GitHub Secret
 
@@ -44,6 +48,7 @@
 > - Zaimanhua Auto Check-in
 > - Daily Comment plus
 > - Daily Watch
+> - World Cup Lottery
 
 ### 方式二：手动配置 Cookie
 
