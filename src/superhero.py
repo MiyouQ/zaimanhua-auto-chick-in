@@ -19,17 +19,23 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from auto_login import get_valid_cookie
 from comment_plus import COMMENTS
-from utils import get_all_cookies, extract_user_info_from_cookies
+from utils import (
+    get_all_cookies,
+    extract_user_info_from_cookies,
+    get_task_list,
+    extract_tasks_from_response,
+    claim_task_reward,
+)
 
 ACTIVITY_BASE = "https://activity.zaimanhua.com/dApi"
 READ_API_BASE = "https://v4api.zaimanhua.com/app/v1"
 V4_API_BASE = "https://v4api.zaimanhua.com"
-SPECIAL_TOPIC_ID = 599            # 活动指定专题 ID (暑期超英漫画专题)
+SPECIAL_TOPIC_ID = 599
 SPECIAL_TOPIC_PAGE = "https://zt.zaimanhua.com/details?id=599"
-SIGN_KEY = "vN4kj_31721!Wt$"      # 接口签名密钥
-CHANNEL = "h5"                    # 固定渠道
+SIGN_KEY = "vN4kj_31721!Wt$"
+CHANNEL = "h5"
 
-BLESSING_CONTENTS = COMMENTS      # 评论池，复用 comment_plus
+BLESSING_CONTENTS = COMMENTS
 
 USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
               '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
@@ -118,7 +124,7 @@ def do_share_task(token):
 
 
 def do_comment_task(token):
-    """执行评论任务（采用 comment_plus 的评论池），返回是否成功"""
+    """执行评论任务，返回是否成功"""
     content = random.choice(BLESSING_CONTENTS)
     result = api_post(token, "/draw/add_comment", {"con": content, "source": 2})
     if not result:
@@ -171,11 +177,7 @@ class SuperheroReader:
         return None
 
     def _get_comic_list(self):
-        """从活动指定的专题(暑期超英漫画专题)获取漫画列表
-
-        专题详情接口: GET https://v4api.zaimanhua.com/api/v1/zt/h5/detail?id=599
-        返回专题内的漫画列表，需从该专题中选漫画阅读才能完成任务。
-        """
+        """从活动指定的专题获取漫画列表"""
         try:
             resp = requests.get(
                 f"{V4_API_BASE}/api/v1/zt/h5/detail",
@@ -217,9 +219,7 @@ class SuperheroReader:
         return chapters
 
     def read(self, max_attempts=8):
-        """从活动专题随机选漫画->选章节->读前2页，返回是否完成
-        若选中漫画无可读章节，自动换一本重试
-        """
+        """从活动专题随机选漫画阅读前2页，返回是否完成"""
         comics = self._get_comic_list()
         if not comics:
             print("  未获取到漫画列表")
@@ -273,7 +273,7 @@ class SuperheroReader:
 
 
 def run_read_task(cookie_str):
-    """执行阅读任务：从活动专题(暑期超英漫画专题)随机选漫画阅读"""
+    """执行阅读任务"""
     print(f"\n--- 执行阅读任务 (专题: {SPECIAL_TOPIC_PAGE}) ---")
     user_info = extract_user_info_from_cookies(cookie_str)
     token = user_info.get("token") if isinstance(user_info, dict) else None
@@ -309,6 +309,49 @@ def run_draw_lottery(token, draw_count):
         time.sleep(1)
 
     return results
+
+
+def has_vip_prize(results):
+    """判断抽奖结果中是否包含"漫画VIP"类奖品"""
+    if not results:
+        return False
+    for prize in results:
+        name = (prize.get("name") or "") if isinstance(prize, dict) else ""
+        if "VIP" in name.upper():
+            return True
+    return False
+
+
+def claim_personal_center_tasks(token):
+    """领取个人中心所有可领取的任务奖励，防止VIP积分少领"""
+    print("\n--- 检查个人中心任务并领取可领取的奖励 ---")
+    task_result = get_task_list(token)
+    if not task_result or task_result.get("errno") != 0:
+        print("  获取任务列表失败")
+        return False
+
+    tasks = extract_tasks_from_response(task_result)
+    claimed = 0
+    failed = 0
+    for task in tasks:
+        task_id = task.get("id") or task.get("taskId")
+        task_name = task.get("title") or task.get("name") or task.get("taskName", "未知")
+        status = task.get("status", 0)
+        if status == 2 and task_id:
+            print(f"  领取任务: {task_name} (ID: {task_id})")
+            success, result = claim_task_reward(token, task_id)
+            if success:
+                print(f"    [OK] 领取成功")
+                claimed += 1
+            else:
+                print(f"    [FAIL] 领取失败")
+                failed += 1
+
+    if claimed == 0 and failed == 0:
+        print("  没有可领取的奖励")
+    else:
+        print(f"  领取完成: 成功 {claimed} 个, 失败 {failed} 个")
+    return failed == 0
 
 
 def print_draw_summary(results):
@@ -394,6 +437,11 @@ def run_account(index, name, cookie_str):
 
     results = run_draw_lottery(token, draw_count)
     print_draw_summary(results)
+
+    # 若抽奖奖品中包含"漫画VIP"，检查个人中心任务并领取，防止VIP积分少领
+    if has_vip_prize(results):
+        print("\n检测到抽奖获得漫画VIP，开始检查个人中心任务...")
+        claim_personal_center_tasks(token)
 
     return True
 
