@@ -22,9 +22,11 @@
 
 | 功能 | 对应工作流 | 说明 |
 |-----|-----------|------|
-| 2026暑假世界杯转盘抽奖 | World Cup Lottery | 自动完成任务并抽奖|
+| 2026超级英雄转盘抽奖 | Superhero Lottery | 自动完成任务并抽奖|
 
-> 活动页面: https://activity.zaimanhua.com/world-cup/
+> 活动页面: https://activity.zaimanhua.com/superhero/
+>
+> 活动日期: 2026年7月31日-2026年8月2日
 
 ## 配置 GitHub Secret
 
@@ -48,7 +50,7 @@
 > - Zaimanhua Auto Check-in
 > - Daily Comment plus
 > - Daily Watch
-> - World Cup Lottery
+> - Superhero Lottery
 
 ### 方式二：手动配置 Cookie
 

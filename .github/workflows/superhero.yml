@@ -1,20 +1,17 @@
-name: World Cup Lottery
+name: Superhero Lottery
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 7 * * *'   # 北京时间 15:00 (UTC 07:00)
   workflow_dispatch:
 
 jobs:
-  world-cup:
+  superhero:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -22,9 +19,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run world cup lottery script
+      - name: Run superhero lottery script
         env:
           PYTHONIOENCODING: utf-8
+          ZAIMANHUA_COOKIE: ${{ secrets.ZAIMANHUA_COOKIE }}
+          ZAIMANHUA_COOKIE_1: ${{ secrets.ZAIMANHUA_COOKIE_1 }}
+          ZAIMANHUA_COOKIE_2: ${{ secrets.ZAIMANHUA_COOKIE_2 }}
+          ZAIMANHUA_COOKIE_3: ${{ secrets.ZAIMANHUA_COOKIE_3 }}
+          ZAIMANHUA_COOKIE_4: ${{ secrets.ZAIMANHUA_COOKIE_4 }}
+          ZAIMANHUA_COOKIE_5: ${{ secrets.ZAIMANHUA_COOKIE_5 }}
           ZAIMANHUA_USERNAME: ${{ secrets.ZAIMANHUA_USERNAME }}
           ZAIMANHUA_PASSWORD: ${{ secrets.ZAIMANHUA_PASSWORD }}
           ZAIMANHUA_USERNAME_1: ${{ secrets.ZAIMANHUA_USERNAME_1 }}
@@ -37,4 +40,4 @@ jobs:
           ZAIMANHUA_PASSWORD_4: ${{ secrets.ZAIMANHUA_PASSWORD_4 }}
           ZAIMANHUA_USERNAME_5: ${{ secrets.ZAIMANHUA_USERNAME_5 }}
           ZAIMANHUA_PASSWORD_5: ${{ secrets.ZAIMANHUA_PASSWORD_5 }}
-        run: python src/world_cup.py
+        run: python src/superhero.py
