@@ -22,11 +22,11 @@
 
 | 功能 | 对应工作流 | 说明 |
 |-----|-----------|------|
-| 2026超级英雄转盘抽奖 | Superhero Lottery | 自动完成任务并抽奖|
+| 暑假看超长篇漫画抽奖必得vip会员 | Comic Feature Lottery | 自动完成分享/阅读/评论任务并抽奖 |
 
-> 活动页面: https://activity.zaimanhua.com/superhero/
+> 活动页面: https://activity.zaimanhua.com/comic-feature/?source=m
 >
-> 活动日期: 2026年7月31日-2026年8月2日
+> 活动截止: 北京时间 2026-08-16 24:00
 
 ## 配置 GitHub Secret
 
@@ -50,7 +50,7 @@
 > - Zaimanhua Auto Check-in
 > - Daily Comment plus
 > - Daily Watch
-> - Superhero Lottery
+> - Comic Feature Lottery
 
 ### 方式二：手动配置 Cookie
 
