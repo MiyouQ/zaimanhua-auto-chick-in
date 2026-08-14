@@ -2,24 +2,51 @@ name: Zaimanhua Auto Check-in
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 1 * * *'
   workflow_dispatch:
 
 jobs:
   checkin:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if daily task already ran today
+        id: precheck
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TODAY=$(TZ=Asia/Shanghai date +%F)
+          RAN=$(gh run list --workflow daily_task.yml --limit 30 \
+                --json startedAt,status \
+                --jq "[.[] | select(.status != \"queued\")
+                       | select((((.startedAt | fromdateiso8601) + 28800)
+                                 | strftime(\"%Y-%m-%d\")) == \"$TODAY\")]
+                      | length" 2>/dev/null || true)
+          if [ -n "$RAN" ] && [ "$RAN" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "daily_task 今天(北京时间 $TODAY)已运行过，跳过本次执行"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "daily_task 今天(北京时间 $TODAY)尚未运行或检查失败，继续执行"
+          fi
+
       - name: Setup Python
+        if: steps.precheck.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
+        if: steps.precheck.outputs.skip != 'true'
         run: pip install -r requirements.txt
 
       - name: Run check-in script
+        if: steps.precheck.outputs.skip != 'true'
         env:
           PYTHONIOENCODING: utf-8
           ZAIMANHUA_COOKIE: ${{ secrets.ZAIMANHUA_COOKIE }}
