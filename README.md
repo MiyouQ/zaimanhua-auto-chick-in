@@ -22,11 +22,13 @@
 
 | 功能 | 对应工作流 | 说明 |
 |-----|-----------|------|
-| 暑假看超长篇漫画抽奖必得vip会员 | Comic Feature Lottery | 自动完成分享/阅读/评论任务并抽奖 |
+| 开学季漫画推荐抽奖必得vip会员 | School Season Lottery | 自动完成分享/阅读/评论任务并抽奖 |
 
-> 活动页面: https://activity.zaimanhua.com/comic-feature/?source=m
+> 活动页面: https://activity.zaimanhua.com/school-season/?source=m
 >
-> 活动截止: 北京时间 2026-08-16 24:00
+> 阅读/评论任务使用开学季专题漫画: https://zt.zaimanhua.com/details?id=601
+>
+> 活动截止: 北京时间 2026-08-31 24:00
 
 ## 配置 GitHub Secret
 
@@ -50,7 +52,7 @@
 > - Zaimanhua Auto Check-in
 > - Daily Comment plus
 > - Daily Watch
-> - Comic Feature Lottery
+> - School Season Lottery
 
 ### 方式二：手动配置 Cookie
 
