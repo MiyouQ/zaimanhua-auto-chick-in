@@ -9,6 +9,11 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Sync Fork
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
