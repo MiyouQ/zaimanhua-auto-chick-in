@@ -1,4 +1,4 @@
-name: Teachers Day Lottery
+name: National Day Lottery
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  teachers-day:
+  national-day:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run teachers-day activity script
+      - name: Run national-day activity script
         env:
           PYTHONIOENCODING: utf-8
           ZAIMANHUA_COOKIE: ${{ secrets.ZAIMANHUA_COOKIE }}
@@ -43,4 +43,4 @@ jobs:
           ZAIMANHUA_PASSWORD_4: ${{ secrets.ZAIMANHUA_PASSWORD_4 }}
           ZAIMANHUA_USERNAME_5: ${{ secrets.ZAIMANHUA_USERNAME_5 }}
           ZAIMANHUA_PASSWORD_5: ${{ secrets.ZAIMANHUA_PASSWORD_5 }}
-        run: python src/teachers_day.py
+        run: python src/national_day.py

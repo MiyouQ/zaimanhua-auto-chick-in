@@ -22,11 +22,11 @@
 
 | 功能 | 对应工作流 | 说明 |
 |-----|-----------|------|
-| 教师节漫画推荐抽奖必得vip会员 | Teachers Day Lottery | 自动完成分享/阅读/评论任务并抽奖 |
+| 国庆七天乐抽奖必得vip会员 | National Day Lottery | 自动完成分享/阅读/评论任务并抽奖 |
 
-> 活动页面: https://activity.zaimanhua.com/teachers-day/
+> 活动页面: https://activity.zaimanhua.com/national-day-2026/
 >
-> 活动截止: 北京时间 2026-09-13 24:00
+> 活动截止: 北京时间 2026-10-07 24:00
 
 ## 配置 GitHub Secret
 
@@ -50,7 +50,7 @@
 > - Zaimanhua Auto Check-in
 > - Daily Comment plus
 > - Daily Watch
-> - Teachers Day Lottery
+> - National Day Lottery
 
 ### 方式二：手动配置 Cookie
 

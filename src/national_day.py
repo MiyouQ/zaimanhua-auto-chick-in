@@ -29,26 +29,28 @@ from utils import (
 ACTIVITY_BASE = "https://activity.zaimanhua.com/dApi"
 READ_API_BASE = "https://v4api.zaimanhua.com/app/v1"
 V4_API_BASE = "https://v4api.zaimanhua.com"
-TOPIC_ID = 604
-TOPIC_PAGE = "https://zt.zaimanhua.com/details?id=604"
-SIGN_KEY = "vgPkj_3S6hS!Ht$"
+ACTIVITY_PAGE = "https://activity.zaimanhua.com/national-day-2026/"
+TOPIC_ID = 605
+TOPIC_PAGE = "https://zt.zaimanhua.com/details?id=605"
+SIGN_KEY = "hgLvj_$oA6GS^Ht!"
 CHANNEL = "h5"
+COMMENT_CONTENT = "国庆节快乐"
 
 USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
               '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
 BEIJING_TZ = timezone(timedelta(hours=8))
-ACTIVITY_END = datetime(2026, 9, 14, 0, 0, 0, tzinfo=BEIJING_TZ)
+ACTIVITY_END = datetime(2026, 10, 8, 0, 0, 0, tzinfo=BEIJING_TZ)
 
 
 def is_activity_expired():
     now = datetime.now(BEIJING_TZ)
     if now >= ACTIVITY_END:
         print(f"[SKIP] 当前北京时间 {now:%Y-%m-%d %H:%M:%S} 已过活动结束时间 "
-              f"2026-09-13 24:00，自动跳过，不登录账号、不执行任务")
+              f"2026-10-07 24:00，跳过")
         return True
     print(f"当前北京时间 {now:%Y-%m-%d %H:%M:%S}，活动进行中 "
-          f"(截止 2026-09-13 24:00)")
+          f"(截止 2026-10-07 24:00)")
     return False
 
 
@@ -62,7 +64,7 @@ def build_headers(token):
     return {
         "Authorization": f"Bearer {token}",
         "User-Agent": USER_AGENT,
-        "Referer": "https://activity.zaimanhua.com/teachers-day/",
+        "Referer": ACTIVITY_PAGE,
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json",
     }
@@ -152,35 +154,15 @@ def do_share_task(token):
     return False
 
 
-def do_comment_task(token, max_attempts=None):
-    comics = get_topic_comics(TOPIC_ID)
-    if not comics:
-        print("  未获取到专题漫画列表，无法生成评论内容")
-        return False
-
-    # 打乱顺序，逐本尝试；若某标题含不和谐词汇被拒，自动更换下一本重试
-    candidates = comics[:]
-    random.shuffle(candidates)
-    if max_attempts is not None:
-        candidates = candidates[:max_attempts]
-    total = len(candidates)
-
-    for idx, comic in enumerate(candidates, 1):
-        content = comic["name"]
-        print(f"  [第 {idx}/{total} 次] 随机选中漫画: {content} (ID: {comic['id']})")
-
-        result = api_post(token, "/draw/add_comment", {"con": content, "source": 2})
-        if result and result.get("errno") == 0:
-            print(f"  [v] 评论发送成功! 内容: {content}")
-            return True
-
-        errmsg = result.get("errmsg", "") if result else "无响应/请求异常"
-        print(f"  评论失败: {errmsg}")
-        if idx < total:
-            print("  自动更换评论内容重试...")
-            time.sleep(1)
-
-    print(f"  已尝试 {total} 个漫画标题，评论任务仍未成功")
+def do_comment_task(token):
+    """祝福评论任务: 在活动页发送固定祝福语"""
+    print(f"  发送祝福评论: {COMMENT_CONTENT}")
+    result = api_post(token, "/draw/add_comment", {"con": COMMENT_CONTENT, "source": 2})
+    if result and result.get("errno") == 0:
+        print(f"  [v] 评论发送成功! 内容: {COMMENT_CONTENT}")
+        return True
+    errmsg = result.get("errmsg", "") if result else "无响应/请求异常"
+    print(f"  评论失败: {errmsg}")
     return False
 
 
@@ -200,7 +182,7 @@ def do_draw(token):
     return False, None
 
 
-class TeacherReader:
+class TopicReader:
 
     def __init__(self, token):
         self.token = token
@@ -313,13 +295,13 @@ class TeacherReader:
 
 
 def run_read_task(cookie_str):
-    print(f"\n--- 执行阅读任务 (专题: {TOPIC_PAGE}) ---")
+    print(f"\n--- 执行阅读任务 (随机阅读专题漫画: {TOPIC_PAGE}) ---")
     user_info = extract_user_info_from_cookies(cookie_str)
     token = user_info.get("token") if isinstance(user_info, dict) else None
     if not token:
         print("  无法获取 token，跳过阅读任务")
         return False
-    return TeacherReader(token).read()
+    return TopicReader(token).read()
 
 
 def run_draw_lottery(token, draw_count):
@@ -448,7 +430,7 @@ def run_account(index, name, cookie_str):
             time.sleep(1)
 
     if not comment_done:
-        print("\n--- 执行评论任务 (复制专题漫画标题) ---")
+        print("\n--- 执行祝福评论任务 ---")
         if do_comment_task(token):
             draw_count += 1
             time.sleep(1)
@@ -502,7 +484,7 @@ def main():
 
     print(f"\n{'=' * 60}")
     if all_success:
-        print("所有账号 teachers-day 活动执行完成！")
+        print("所有账号 national-day-2026 活动执行完成！")
     else:
         print("部分账号活动执行失败，请检查日志")
     print("=" * 60)
