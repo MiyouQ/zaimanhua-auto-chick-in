@@ -23,6 +23,7 @@ jobs:
           target_sync_branch: master
           target_repo_token: ${{ secrets.GITHUB_TOKEN }}
           test_mode: false
+          upstream_pull_args: '--allow-unrelated-histories'
 
       - name: Notify via ServerChan
         if: steps.sync.outputs.has_new_commits == 'true'
